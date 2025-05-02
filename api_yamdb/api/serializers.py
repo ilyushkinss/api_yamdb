@@ -98,9 +98,9 @@ class UserSerializer(serializers.ModelSerializer):
             )
         ]
 
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Запрещено использовать юзернейм "me"!'
-            )
-        return value
+    # def validate_username(self, value):
+    #     if value.lower() == 'me':
+    #         raise serializers.ValidationError(
+    #             'Запрещено использовать юзернейм "me"!'
+    #         )
+    #     return value
