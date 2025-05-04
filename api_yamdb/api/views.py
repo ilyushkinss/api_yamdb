@@ -13,6 +13,7 @@ from .serializers import (
     GenreSerializer, CategorySerializer, SignUpSerializers, TokenSerializer
 )
 from .utils import generate_and_save_confirmation_codes
+from .permissions import IsAuthorOrReadOnly, IsSuperUserOrAdmin
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -24,16 +25,19 @@ class UserViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all().order_by("title")
     serializer_class = ReviewSerializer
+    permission_classes = (IsAuthorOrReadOnly)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-    #pagination_class = LimitOffsetPagination
+    # pagination_class = LimitOffsetPagination
+    permission_classes = (IsAuthorOrReadOnly,)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    permission_classes = (IsAuthorOrReadOnly,)
 
     def get_queryset(self):
         review = get_object_or_404(
@@ -55,6 +59,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    permission_classes = (IsSuperUserOrAdmin,)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -62,6 +67,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    permission_classes = (IsSuperUserOrAdmin,)
 
 
 class SignUpView(views.APIView):
@@ -98,3 +104,4 @@ class TokenView(views.APIView):
         user = get_object_or_404(User, username=username)
         access_token = {'token': AccessToken.for_user(user)}
         return Response(access_token, status=status.HTTP_200_OK)
+  
