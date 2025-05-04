@@ -1,12 +1,18 @@
+from django.core.mail import send_mail
 from django.shortcuts import render
-from rest_framework import viewsets, mixins, permissions, filters
+from rest_framework import viewsets, mixins, permissions, filters, views, status
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import User, Review, Title, Comment, Genre, Category
-from .serializers import (ReviewSerializer, TitleSerializer, UserSerializer,
-                          CommentSerializer, GenreSerializer, CategorySerializer)
+from .serializers import (
+    ReviewSerializer, TitleSerializer, UserSerializer, CommentSerializer,
+    GenreSerializer, CategorySerializer, SignUpSerializers, TokenSerializer
+)
+from .utils import generate_and_save_confirmation_codes
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -16,7 +22,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all().order_by("name")
+    queryset = Review.objects.all().order_by("title")
     serializer_class = ReviewSerializer
 
 
@@ -44,15 +50,51 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, review=review)
 
 
-class CategoryViewSet(CreateDestroyViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
 
-class GenreViewSet(CreateDestroyViewSet):
+class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+
+
+class SignUpView(views.APIView):
+    """
+    Регистрация пользователя.
+    """
+    def post(self, request):
+        serializer = SignUpSerializers(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get('email')
+        username = serializer.validated_data.get('username')
+        user, created = User.objects.get_or_create(
+            username=username, email=email,
+        )
+        confirmation_code = generate_and_save_confirmation_codes(user)
+        send_mail(
+            subject='Ваш код подтверждения',
+            message=(
+                'Ваш код подтверждения для получения токена:'
+                f'{confirmation_code}'
+            ),
+            from_email='api_yamdb@email.com',
+            recipient_list=[user.email],
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TokenView(views.APIView):
+
+    def post(self, request):
+        serializer = TokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        user = get_object_or_404(User, username=username)
+        access_token = {'token': AccessToken.for_user(user)}
+        return Response(access_token, status=status.HTTP_200_OK)

@@ -6,6 +6,7 @@ from .validators import validate_slug, validate_username, validate_year
 
 MAX_SCORE = 10
 MIN_SCORE = 1
+LENGTH_CONFIRMATION_CODE = 6
 
 
 class User(AbstractUser):
@@ -23,11 +24,17 @@ class User(AbstractUser):
         unique=True,
         validators=[validate_username]
     )
-    email = models.CharField('Почта', max_length=254, unique=True)
+    email = models.EmailField('Почта', max_length=254, unique=True)
     first_name = models.CharField('Имя', max_length=150, blank=True)
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
     bio = models.TextField('Биография', blank=True)
     role = models.CharField('Роль', max_length=20, default='user')
+    confirmation_code = models.CharField(
+        'Код подтверждения',
+        max_length=LENGTH_CONFIRMATION_CODE,
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -97,7 +104,7 @@ class Title(models.Model):
     Необязательные поля: description
     """
 
-    name = models.CharField('Название произведения', max_length=256)
+    title = models.CharField('Название произведения', max_length=256)
     year = models.SmallIntegerField(
         'Год выпуска произведения',
         validators=[validate_year]
@@ -123,10 +130,10 @@ class Title(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
-        ordering = ('name',)
+        ordering = ('title',)
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Review(models.Model):
@@ -141,14 +148,14 @@ class Review(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='review',
+        related_name='reviews',
         verbose_name='Автор',
 
     )
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name='review',
+        related_name='reviews',
         verbose_name='Произведение',
     )
     pub_date = models.DateTimeField(
@@ -161,7 +168,6 @@ class Review(models.Model):
         validators=[
             MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE)
         ],
-        error_messages='Оценка может быть от 1 до 10.',
     )
 
     class Meta:
