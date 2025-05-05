@@ -1,0 +1,7 @@
+USER = 'user'
+ADMIN = 'admin'
+MODER = 'moderator'
+
+MAX_SCORE = 10
+MIN_SCORE = 1
+LENGTH_CONFIRMATION_CODE = 6

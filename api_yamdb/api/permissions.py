@@ -20,10 +20,10 @@ class IsSuperUserOrAdmin(permissions.BasePermission):
     message = 'Изменять этот контент может только админ или супер юзер'
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        if not request.user.is_authenticated:
-            return False
-        if request.user.is_admin or request.user.is_superuser:
-            return True
-        return False
+        return request.user.is_authenticated and (request.user.is_admin or request.user.is_superuser)
+
+
+class IsSuperUserOrAdminOrReadOnly(IsSuperUserOrAdmin):
+
+    def has_permission(self, request, view):
+        return request.method in permissions.SAFE_METHODS or super().has_permission(request, view)
