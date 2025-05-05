@@ -54,16 +54,33 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        fields = ('id', 'text', 'author', 'pub_date')
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(
-        many=False,
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(),
+        slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(),
+        slug_field='slug',
+        many=True,
+    )
+    rating = serializers.IntegerField(read_only=True)
 
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(
+        read_only=True,
     )
     genre = GenreSerializer(
-        many=False,
+        many=True,
+        read_only=True,
     )
     rating = serializers.IntegerField(read_only=True)
 
@@ -74,41 +91,21 @@ class TitleSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор пользователя"""
-    username = serializers.RegexField(
-        r'^[\w.@+-]+\Z',
-        max_length=32,
-        validators=[
-            UniqueValidator(queryset=User.objects.all())
-        ]
-    )
-    email = serializers.EmailField(
-        max_length=254,
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
 
     class Meta:
         fields = (
             'username', 'email', 'first_name', 'last_name', 'bio', 'role'
         )
-        read_only_fields = ('role',)
         model = User
-        lookup_field = 'username'
-        extra_kwargs = {
-            'url': {'lookup_field': 'username', },
-        }
-        validators = [
-            UniqueTogetherValidator(
-                queryset=User.objects.all(),
-                fields=['username', 'email']
-            )
-        ]
 
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Запрещено использовать юзернейм "me"!'
-            )
-        return value
+
+class MeSerializer(UserSerializer):
+    """
+    Сериализтор для обновления данных пользователя.
+    """
+
+    class Meta(UserSerializer.Meta):
+        read_only_fields = ('role',)
 
 
 class SignUpSerializers(serializers.Serializer):
@@ -169,3 +166,4 @@ class TokenSerializer(serializers.Serializer):
         user = get_object_or_404(User, username=data['username'])
         if user.confirmation_code != data['confirmation_code']:
             raise serializers.ValidationError('Неверный код подтверждения.')
+        return data
