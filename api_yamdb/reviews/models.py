@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from .validators import validate_slug, validate_username, validate_year
+from api import consts
 
 MAX_SCORE = 10
 MIN_SCORE = 1
@@ -18,6 +19,11 @@ class User(AbstractUser):
     Необязательные поля:имя, фамилия, биография, роль
     """
 
+    ROLES = [
+        (consts.USER, 'Пользователь'),
+        (consts.ADMIN, 'Администратор'),
+        (consts.MODER, 'Модератор')
+    ]
     username = models.CharField(
         'Никнейм',
         max_length=150,
@@ -28,10 +34,15 @@ class User(AbstractUser):
     first_name = models.CharField('Имя', max_length=150, blank=True)
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
     bio = models.TextField('Биография', blank=True)
-    role = models.CharField('Роль', max_length=20, default='user')
+    role = models.CharField(
+        'Роль',
+        max_length=20,
+        default=consts.USER,
+        choices=ROLES,
+    )
     confirmation_code = models.CharField(
         'Код подтверждения',
-        max_length=LENGTH_CONFIRMATION_CODE,
+        max_length=consts.LENGTH_CONFIRMATION_CODE,
         blank=True,
         null=True,
     )
@@ -43,6 +54,14 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == consts.ADMIN or self.is_superuser
+
+    @property
+    def is_moderator(self):
+        return self.role == consts.MODER
 
 
 class Category(models.Model):
@@ -104,7 +123,7 @@ class Title(models.Model):
     Необязательные поля: description
     """
 
-    title = models.CharField('Название произведения', max_length=256)
+    name = models.CharField('Название произведения', max_length=256)
     year = models.SmallIntegerField(
         'Год выпуска произведения',
         validators=[validate_year]
@@ -130,10 +149,10 @@ class Title(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
-        ordering = ('title',)
+        ordering = ('name',)
 
     def __str__(self):
-        return self.title
+        return self.name
 
 
 class Review(models.Model):
@@ -166,7 +185,8 @@ class Review(models.Model):
     score = models.PositiveSmallIntegerField(
         'Оценка',
         validators=[
-            MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE)
+            MinValueValidator(consts.MIN_SCORE),
+            MaxValueValidator(consts.MAX_SCORE),
         ],
     )
 
@@ -217,3 +237,11 @@ class Comment(models.Model):
         auto_now_add=True,
         auto_now=False,
     )
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+        ordering = ('pub_date',)
+
+    def __str__(self):
+        return self.text[:20]
