@@ -11,12 +11,12 @@ LENGTH_CONFIRMATION_CODE = 6
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
-        slug_field='username',
         read_only=True,
-        default=serializers.CurrentUserDefault(),
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
     )
     pub_date = serializers.DateTimeField(
-        read_only=True,
+        read_only=True
     )
     score = serializers.IntegerField(
         min_value=1,

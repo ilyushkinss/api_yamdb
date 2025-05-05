@@ -18,7 +18,7 @@ from .serializers import (
     MeSerializer, TitleReadSerializer
 )
 from .utils import generate_and_save_confirmation_codes
-from .permissions import IsAuthorOrReadOnly, IsSuperUserOrAdmin, IsSuperUserOrAdminOrReadOnly
+from .permissions import IsAuthorOrReadOnly, IsSuperUserOrAdmin, IsSuperUserOrAdminOrReadOnly, CategoryPermission
 from .filters import TitleFilter
 
 
@@ -50,9 +50,20 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all().order_by("title")
     serializer_class = ReviewSerializer
-    permission_classes = (IsAuthorOrReadOnly,)
+    permission_classes = (IsAuthorOrReadOnly, )
+
+    def get_queryset(self):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id'))
+        return title.reviews.all()
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id'))
+        serializer.save(author=self.request.user, title=title)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -88,12 +99,16 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, review=review)
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(viewsets.GenericViewSet,
+                      ListModelMixin,
+                      DestroyModelMixin,
+                      CreateModelMixin):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsSuperUserOrAdmin,)
+    permission_classes = (CategoryPermission,)
+    lookup_field = 'slug'
 
 
 class GenreViewSet(viewsets.GenericViewSet,
