@@ -1,5 +1,6 @@
 from django.core.mail import send_mail
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, permissions, filters, views, status
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -18,6 +19,7 @@ from .serializers import (
 )
 from .utils import generate_and_save_confirmation_codes
 from .permissions import IsAuthorOrReadOnly, IsSuperUserOrAdmin, IsSuperUserOrAdminOrReadOnly
+from .filters import TitleFilter
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -58,6 +60,8 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     permission_classes = (IsSuperUserOrAdminOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -67,7 +71,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthorOrReadOnly, IsSuperUserOrAdmin)
+    permission_classes = (IsAuthorOrReadOnly, IsSuperUserOrAdmin,)
 
     def get_queryset(self):
         review = get_object_or_404(
@@ -100,7 +104,7 @@ class GenreViewSet(viewsets.GenericViewSet,
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsSuperUserOrAdmin,)
+    permission_classes = (IsSuperUserOrAdminOrReadOnly,)
     pagination_class = LimitOffsetPagination
     lookup_field = 'slug'
 
