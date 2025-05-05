@@ -28,7 +28,7 @@ class IsSuperUserOrAdmin(permissions.BasePermission):
 class CategoryPermission(permissions.BasePermission):
     """
     Права доступа для администратора и супер юзера
-    на добавление и удаление категорий, жанров и произведений.
+    на добавление и удаление категорий
     """
     message = 'Данное действие доступно только админу и супер юзеру'
 
