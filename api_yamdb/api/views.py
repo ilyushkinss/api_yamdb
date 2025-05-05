@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
+                                   ListModelMixin)
 
 from reviews.models import User, Review, Title, Comment, Genre, Category
 from .serializers import (
@@ -62,12 +64,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = (IsSuperUserOrAdmin,)
 
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(viewsets.GenericViewSet,
+                   ListModelMixin,
+                   DestroyModelMixin,
+                   CreateModelMixin):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     permission_classes = (IsSuperUserOrAdmin,)
+    pagination_class = LimitOffsetPagination
+    lookup_field = 'slug'
 
 
 class SignUpView(views.APIView):
@@ -104,4 +111,3 @@ class TokenView(views.APIView):
         user = get_object_or_404(User, username=username)
         access_token = {'token': AccessToken.for_user(user)}
         return Response(access_token, status=status.HTTP_200_OK)
-  

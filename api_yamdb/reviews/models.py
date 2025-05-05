@@ -41,8 +41,14 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
         ordering = ('id',)
 
-    def __str__(self):
+    def str(self):
         return self.username
+
+    def is_admin(self):
+        return self.role == 'admin'
+
+    def is_moderator(self):
+        return self.role == 'moderator'
 
 
 class Category(models.Model):

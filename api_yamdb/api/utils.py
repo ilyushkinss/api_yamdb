@@ -15,4 +15,3 @@ def generate_and_save_confirmation_codes(user):
 
 def check_confirmation_code(user, confirmation_code):
     return confirmation_code == user.confirmation_code
-

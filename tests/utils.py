@@ -136,7 +136,7 @@ def check_permissions(client, url, data, user_role, objects,
     response = client.post(url, data=data)
     assert response.status_code == expected_status, (
         f'Проверьте, что POST-запрос {user_role} к `{url}` возвращает ответ '
-        f'со статусом {expected_status}.'
+        f'со статусом {expected_status}. Сейчас {response.status_code}'
     )
     response = client.patch(f'{url}{objects[0][sufix]}/', data=data)
     assert response.status_code == expected_status, (
