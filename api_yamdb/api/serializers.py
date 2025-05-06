@@ -4,28 +4,40 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
-from reviews.models import Review, Comment, User, Category, Title, Genre
-
-LENGTH_CONFIRMATION_CODE = 6
+from api import consts
+from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username',
-        default=serializers.CurrentUserDefault()
     )
     pub_date = serializers.DateTimeField(
         read_only=True
     )
     score = serializers.IntegerField(
-        min_value=1,
-        max_value=10,
+        min_value=consts.MIN_SCORE,
+        max_value=consts.MAX_SCORE,
     )
 
     class Meta:
         model = Review
-        fields = '__all__'
+        fields = ('id', 'title', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('title',)
+
+    def validate(self, data):
+        if self.context['request'].method != 'POST':
+            return data
+
+        author = self.context['request'].user
+        title_id = self.context.get('view').kwargs.get('title_id')
+        if Review.objects.filter(author=author, title_id=title_id).exists():
+            raise serializers.ValidationError(
+                'Ваш отзыв уже был добавлен. '
+                'На одно произведние, можно добавить только один отзыв.'
+            )
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -115,7 +127,7 @@ class SignUpSerializers(serializers.Serializer):
 
     username = serializers.RegexField(
         r'^[\w.@+-]+\Z',
-        max_length=150,
+        max_length=consts.NAME_USER_LENGTH,
         required=True,
     )
     email = serializers.EmailField(max_length=254, required=True,)
@@ -154,11 +166,11 @@ class SignUpSerializers(serializers.Serializer):
 class TokenSerializer(serializers.Serializer):
     username = serializers.RegexField(
         regex=r'^[\w.@+-]+\Z',
-        max_length=150,
+        max_length=consts.NAME_LENGTH,
         required=True,
     )
     confirmation_code = serializers.CharField(
-        max_length=LENGTH_CONFIRMATION_CODE,
+        max_length=consts.LENGTH_CONFIRMATION_CODE,
         required=True,
     )
 
