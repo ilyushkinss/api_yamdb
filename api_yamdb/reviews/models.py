@@ -2,12 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from .validators import validate_slug, validate_username, validate_year
 from api import consts
-
-MAX_SCORE = 10
-MIN_SCORE = 1
-LENGTH_CONFIRMATION_CODE = 6
+from .validators import validate_slug, validate_username, validate_year
 
 
 class User(AbstractUser):
@@ -26,17 +22,21 @@ class User(AbstractUser):
     ]
     username = models.CharField(
         'Никнейм',
-        max_length=150,
+        max_length=consts.NAME_USER_LENGTH,
         unique=True,
         validators=[validate_username]
     )
     email = models.EmailField('Почта', max_length=254, unique=True)
-    first_name = models.CharField('Имя', max_length=150, blank=True)
-    last_name = models.CharField('Фамилия', max_length=150, blank=True)
+    first_name = models.CharField(
+        'Имя', max_length=consts.NAME_USER_LENGTH, blank=True
+    )
+    last_name = models.CharField(
+        'Фамилия', max_length=consts.NAME_USER_LENGTH, blank=True
+    )
     bio = models.TextField('Биография', blank=True)
     role = models.CharField(
         'Роль',
-        max_length=20,
+        max_length=consts.ROLE_LENGTH,
         default=consts.USER,
         choices=ROLES,
     )
@@ -75,7 +75,7 @@ class Category(models.Model):
     name = models.CharField('Название категории', max_length=256)
     slug = models.SlugField(
         'Слаг категории',
-        max_length=50,
+        max_length=consts.SLUG_LENGTH,
         unique=True,
         validators=[validate_slug],
     )
@@ -97,10 +97,10 @@ class Genre(models.Model):
     Все поля обязательные.
     """
 
-    name = models.CharField('Название жанра', max_length=256)
+    name = models.CharField('Название жанра', max_length=consts.NAME_LENGTH)
     slug = models.SlugField(
         'Слаг жанра',
-        max_length=50,
+        max_length=consts.SLUG_LENGTH,
         unique=True,
         validators=[validate_slug],
     )
@@ -123,7 +123,9 @@ class Title(models.Model):
     Необязательные поля: description
     """
 
-    name = models.CharField('Название произведения', max_length=256)
+    name = models.CharField(
+        'Название произведения', max_length=consts.NAME_LENGTH
+    )
     year = models.SmallIntegerField(
         'Год выпуска произведения',
         validators=[validate_year]
@@ -218,12 +220,6 @@ class Comment(models.Model):
         related_name='comment',
         verbose_name='Автор',
 
-    )
-    title = models.ForeignKey(
-        Title,
-        on_delete=models.CASCADE,
-        related_name='comment',
-        verbose_name='Произведение',
     )
     review = models.ForeignKey(
         Review,
