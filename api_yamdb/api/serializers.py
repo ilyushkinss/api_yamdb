@@ -6,6 +6,9 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор отзывов.
+    """
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username',
@@ -38,6 +41,9 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    """
+    Сериализатор категорий.
+    """
 
     class Meta:
         model = Category
@@ -45,6 +51,9 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор жанров
+    """
 
     class Meta:
         model = Genre
@@ -52,6 +61,9 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор комментариев.
+    """
     author = serializers.SlugRelatedField(
         slug_field='username',
         read_only=True,
@@ -67,6 +79,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для записи произведений.
+    """
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug'
@@ -84,6 +99,9 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для чтения произведений.
+    """
     category = CategorySerializer(
         read_only=True,
     )
@@ -119,7 +137,7 @@ class MeSerializer(UserSerializer):
 
 class SignUpSerializers(serializers.Serializer):
     """
-    Регистрация пользователя.
+    Сериализатор для регистрации пользователя.
     """
 
     username = serializers.RegexField(
@@ -161,6 +179,9 @@ class SignUpSerializers(serializers.Serializer):
 
 
 class TokenSerializer(serializers.Serializer):
+    """
+    Сериализатор получения токена для пользователя.
+    """
     username = serializers.RegexField(
         regex=r'^[\w.@+-]+\Z',
         max_length=consts.NAME_LENGTH,

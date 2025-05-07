@@ -56,6 +56,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """
+    Вьюсет для модели отзывов.
+    """
     serializer_class = ReviewSerializer
     http_method_names = ('get', 'post', 'patch', 'delete')
 
@@ -79,6 +82,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    """
+    Вьюсет для модели произведений.
+    """
     queryset = (
         Title.objects.annotate(rating=Avg('reviews__score')).order_by('rating')
     )
@@ -95,6 +101,9 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """
+    Вьюсет для модели комментариев.
+    """
     serializer_class = CommentSerializer
     http_method_names = ('get', 'post', 'patch', 'delete')
 
@@ -123,6 +132,9 @@ class CategoryViewSet(viewsets.GenericViewSet,
                       ListModelMixin,
                       DestroyModelMixin,
                       CreateModelMixin):
+    """
+    Вьюсет для модели категорий.
+    """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
@@ -135,6 +147,9 @@ class GenreViewSet(viewsets.GenericViewSet,
                    ListModelMixin,
                    DestroyModelMixin,
                    CreateModelMixin):
+    """
+    Вьюсет для модели жанров.
+    """
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
@@ -146,7 +161,7 @@ class GenreViewSet(viewsets.GenericViewSet,
 
 class SignUpView(views.APIView):
     """
-    Регистрация пользователя.
+    Вьюсет для регистрация пользователя.
     """
     def post(self, request):
         serializer = SignUpSerializers(data=request.data)
@@ -171,7 +186,7 @@ class SignUpView(views.APIView):
 
 class TokenView(views.APIView):
     """
-    Получение токена.
+    Вьюсет для получение токена.
     """
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
