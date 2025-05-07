@@ -208,7 +208,7 @@ class Test05ReviewAPI:
             'об отзывах. В ответе на запрос не обнаружен текст отзыва.'
         )
         check_fields(
-            'review', self.REVIEWS_URL_TEMPLATE, review, expected_data
+            'reviews', self.REVIEWS_URL_TEMPLATE, review, expected_data
         )
 
         response = admin_client.get(
@@ -252,7 +252,7 @@ class Test05ReviewAPI:
             key: value for key, value in reviews[0].items() if key != 'id'
         }
         check_fields(
-            'review', self.REVIEW_DETAIL_URL_TEMPLATE, review, expected_data,
+            'reviews', self.REVIEW_DETAIL_URL_TEMPLATE, review, expected_data,
             detail=True
         )
 
