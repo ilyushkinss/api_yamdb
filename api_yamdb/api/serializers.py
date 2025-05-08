@@ -13,9 +13,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username',
     )
-    pub_date = serializers.DateTimeField(
-        read_only=True
-    )
     score = serializers.IntegerField(
         min_value=consts.MIN_SCORE,
         max_value=consts.MAX_SCORE,
@@ -24,14 +21,16 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'title', 'text', 'author', 'score', 'pub_date')
-        read_only_fields = ('title',)
+        read_only_fields = ('title', 'pub_date')
 
     def validate(self, data):
         if self.context['request'].method != 'POST':
             return data
 
         author = self.context['request'].user
-        title_id = self.context.get('view').kwargs.get('title_id')
+        title_id = (
+            self.context['request'].parser_context['kwargs']['title_id']
+        )
         if Review.objects.filter(author=author, title_id=title_id).exists():
             raise serializers.ValidationError(
                 'Ваш отзыв уже был добавлен. '
@@ -69,9 +68,6 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only=True,
         default=serializers.CurrentUserDefault(),
     )
-    pub_date = serializers.DateTimeField(
-        read_only=True
-    )
 
     class Meta:
         model = Comment
@@ -90,12 +86,16 @@ class TitleSerializer(serializers.ModelSerializer):
         queryset=Genre.objects.all(),
         slug_field='slug',
         many=True,
+        required=True,
+        allow_empty=False,
     )
-    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
         fields = '__all__'
+
+    def to_representation(self, instance):
+        return TitleReadSerializer(instance).data
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
