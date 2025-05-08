@@ -173,7 +173,7 @@ class SignUpSerializers(serializers.Serializer):
 
         if user_by_email:
             raise serializers.ValidationError(
-                'Пользователь с такой почтой уже зарагистрирован.'
+                f'Пользователь с почтой {email} уже зарагистрирован.'
             )
         return data
 

@@ -50,7 +50,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         if request.method == 'GET':
             return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'PATCH':
+        else:
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -63,17 +63,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_title(self):
-        title = get_object_or_404(
+        return get_object_or_404(
             Title,
             id=self.kwargs.get('title_id'))
-        return title
 
     def get_queryset(self):
         return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
-        title = self.get_title()
-        serializer.save(author=self.request.user, title=title)
+        serializer.save(author=self.request.user, title=self.get_title())
 
     def get_permissions(self):
         if self.request.method in ('PATCH', 'DELETE'):
