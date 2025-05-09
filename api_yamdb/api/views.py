@@ -1,4 +1,3 @@
-from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -132,9 +131,9 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 
 class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
-                      ListModelMixin,
-                      DestroyModelMixin,
-                      CreateModelMixin):
+                               ListModelMixin,
+                               DestroyModelMixin,
+                               CreateModelMixin):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     permission_classes = (IsSuperUserOrAdminOrReadOnly,)
