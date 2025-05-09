@@ -40,12 +40,6 @@ class User(AbstractUser):
         default=consts.USER,
         choices=ROLES,
     )
-    confirmation_code = models.CharField(
-        'Код подтверждения',
-        max_length=consts.LENGTH_CONFIRMATION_CODE,
-        blank=True,
-        null=True,
-    )
 
     class Meta:
         verbose_name = 'Пользователь'
