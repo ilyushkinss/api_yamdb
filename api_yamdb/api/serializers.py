@@ -1,8 +1,11 @@
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from api import consts
 from reviews.models import Category, Comment, Genre, Review, Title, User
+from .utils import generate_and_save_confirmation_codes
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -159,9 +162,14 @@ class SignUpSerializers(serializers.Serializer):
     def validate(self, data):
         username = data.get('username')
         email = data.get('email')
-        user_by_username = User.objects.filter(username=username).first()
-        user_by_email = User.objects.filter(email=email).first()
-
+        try:
+            user_by_username = User.objects.get(username=username)
+        except User.DoesNotExist:
+            user_by_username = None
+        try:
+            user_by_email = User.objects.get(email=email)
+        except User.DoesNotExist:
+            user_by_email = None
         if ((user_by_email and user_by_username)
                 and user_by_email == user_by_username):
             return data
@@ -176,6 +184,20 @@ class SignUpSerializers(serializers.Serializer):
                 f'Пользователь с почтой {email} уже зарагистрирован.'
             )
         return data
+
+    def create(self, validated_data):
+        user, created = User.objects.get_or_create(**validated_data)
+        confirmation_code = generate_and_save_confirmation_codes(user)
+        send_mail(
+            subject='Ваш код подтверждения',
+            message=(
+                'Ваш код подтверждения для получения токена:'
+                f'{confirmation_code}'
+            ),
+            from_email='api_yamdb@email.com',
+            recipient_list=[user.email],
+        )
+        return user
 
 
 class TokenSerializer(serializers.Serializer):
@@ -194,6 +216,7 @@ class TokenSerializer(serializers.Serializer):
 
     def validate(self, data):
         user = get_object_or_404(User, username=data['username'])
-        if user.confirmation_code != data['confirmation_code']:
+        confirmation_code = data['confirmation_code']
+        if not default_token_generator.check_token(user, confirmation_code):
             raise serializers.ValidationError('Неверный код подтверждения.')
         return data
