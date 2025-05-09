@@ -74,9 +74,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, title=self.get_title())
 
     def get_permissions(self):
-        if self.request.method in ('PATCH', 'DELETE'):
-            return IsModerOrAdminOrAuthorOrReadOnly(),
-        return permissions.IsAuthenticatedOrReadOnly(),
+        return (IsModerOrAdminOrAuthorOrReadOnly(),)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -113,23 +111,23 @@ class CommentViewSet(viewsets.ModelViewSet):
         return review
 
     def get_queryset(self):
-        review = self.get_review()
-        return review.comment.all()
+        return self.get_review().comment.all()
 
     def perform_create(self, serializer):
-        review = self.get_review()
-        serializer.save(author=self.request.user, review=review)
+        serializer.save(author=self.request.user, review=self.get_review())
 
     def get_permissions(self):
-        if self.request.method in ('PATCH', 'DELETE'):
-            return IsModerOrAdminOrAuthorOrReadOnly(),
-        return permissions.IsAuthenticatedOrReadOnly(),
+        return (IsModerOrAdminOrAuthorOrReadOnly(),)
 
 
-class CategoryViewSet(viewsets.GenericViewSet,
+class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
                       ListModelMixin,
                       DestroyModelMixin,
                       CreateModelMixin):
+    pass
+
+
+class CategoryViewSet(CategoryGenreBaseViewSet):
     """
     Вьюсет для модели категорий.
     """
@@ -141,10 +139,7 @@ class CategoryViewSet(viewsets.GenericViewSet,
     lookup_field = 'slug'
 
 
-class GenreViewSet(viewsets.GenericViewSet,
-                   ListModelMixin,
-                   DestroyModelMixin,
-                   CreateModelMixin):
+class GenreViewSet(CategoryGenreBaseViewSet):
     """
     Вьюсет для модели жанров.
     """
