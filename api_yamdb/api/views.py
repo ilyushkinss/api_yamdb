@@ -1,4 +1,3 @@
-from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -25,7 +24,6 @@ from .serializers import (
     SignUpSerializers, TitleSerializer, TitleReadSerializer, TokenSerializer,
     ReviewSerializer, UserSerializer
 )
-from .utils import generate_and_save_confirmation_codes
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -41,18 +39,30 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=('get', 'patch'),
+        methods=('get',),
         permission_classes=(permissions.IsAuthenticated,),
     )
     def me(self, request):
         user = get_object_or_404(User, username=self.request.user.username)
-        serializer = MeSerializer(user, data=request.data, partial=True)
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @me.mapping.patch
+    def me_patch(self, request):
+        user = get_object_or_404(User, username=self.request.user.username)
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(
+            user, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
-        if request.method == 'GET':
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'PATCH':
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def get_serializer_class(self):
+        if self.action in ('me', 'me_patch'):
+            return MeSerializer
+        return UserSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -61,24 +71,18 @@ class ReviewViewSet(viewsets.ModelViewSet):
     """
     serializer_class = ReviewSerializer
     http_method_names = ('get', 'post', 'patch', 'delete')
+    permission_classes = (IsModerOrAdminOrAuthorOrReadOnly,)
 
     def get_title(self):
-        title = get_object_or_404(
+        return get_object_or_404(
             Title,
             id=self.kwargs.get('title_id'))
-        return title
 
     def get_queryset(self):
         return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
-        title = self.get_title()
-        serializer.save(author=self.request.user, title=title)
-
-    def get_permissions(self):
-        if self.request.method in ('PATCH', 'DELETE'):
-            return IsModerOrAdminOrAuthorOrReadOnly(),
-        return permissions.IsAuthenticatedOrReadOnly(),
+        serializer.save(author=self.request.user, title=self.get_title())
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -88,7 +92,6 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = (
         Title.objects.annotate(rating=Avg('reviews__score')).order_by('rating')
     )
-    serializer_class = TitleSerializer
     permission_classes = (IsSuperUserOrAdminOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
     filter_backends = (DjangoFilterBackend,)
@@ -106,6 +109,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     serializer_class = CommentSerializer
     http_method_names = ('get', 'post', 'patch', 'delete')
+    permission_classes = (IsModerOrAdminOrAuthorOrReadOnly,)
 
     def get_review(self):
         review = get_object_or_404(
@@ -115,12 +119,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         return review
 
     def get_queryset(self):
-        review = self.get_review()
-        return review.comment.all()
+        return self.get_review().comment.all()
 
     def perform_create(self, serializer):
-        review = self.get_review()
-        serializer.save(author=self.request.user, review=review)
+        serializer.save(author=self.request.user, review=self.get_review())
 
     def get_permissions(self):
         if self.request.method in ('PATCH', 'DELETE'):
@@ -128,35 +130,31 @@ class CommentViewSet(viewsets.ModelViewSet):
         return permissions.IsAuthenticatedOrReadOnly(),
 
 
-class CategoryViewSet(viewsets.GenericViewSet,
-                      ListModelMixin,
-                      DestroyModelMixin,
-                      CreateModelMixin):
+class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
+                               ListModelMixin,
+                               DestroyModelMixin,
+                               CreateModelMixin):
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    permission_classes = (IsSuperUserOrAdminOrReadOnly,)
+    lookup_field = 'slug'
+
+
+class CategoryViewSet(CategoryGenreBaseViewSet):
     """
     Вьюсет для модели категорий.
     """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    permission_classes = (IsSuperUserOrAdminOrReadOnly,)
-    lookup_field = 'slug'
 
 
-class GenreViewSet(viewsets.GenericViewSet,
-                   ListModelMixin,
-                   DestroyModelMixin,
-                   CreateModelMixin):
+class GenreViewSet(CategoryGenreBaseViewSet):
     """
     Вьюсет для модели жанров.
     """
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    permission_classes = (IsSuperUserOrAdminOrReadOnly,)
     pagination_class = LimitOffsetPagination
-    lookup_field = 'slug'
 
 
 class SignUpView(views.APIView):
@@ -166,21 +164,7 @@ class SignUpView(views.APIView):
     def post(self, request):
         serializer = SignUpSerializers(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email')
-        username = serializer.validated_data.get('username')
-        user, created = User.objects.get_or_create(
-            username=username, email=email,
-        )
-        confirmation_code = generate_and_save_confirmation_codes(user)
-        send_mail(
-            subject='Ваш код подтверждения',
-            message=(
-                'Ваш код подтверждения для получения токена:'
-                f'{confirmation_code}'
-            ),
-            from_email='api_yamdb@email.com',
-            recipient_list=[user.email],
-        )
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
